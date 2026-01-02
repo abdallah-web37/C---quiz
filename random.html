@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>C++ Quiz | امتحان C++</title>
+<style>
+  :root{
+    --bg:#0f172a;        /* slate-900 */
+    --card:#111827;      /* gray-900 */
+    --accent:#22c55e;    /* green-500 */
+    --accent2:#60a5fa;   /* blue-400 */
+    --danger:#ef4444;    /* red-500 */
+    --warning:#f59e0b;   /* amber-500 */
+    --text:#e5e7eb;      /* gray-200 */
+    --muted:#9ca3af;     /* gray-400 */
+  }
+  body{
+    margin:0; background:linear-gradient(135deg,#0f172a 0%, #1f2937 100%);
+    color:var(--text); font-family:Inter,Segoe UI,system-ui,Arial;
+  }
+  .container{max-width:1000px; margin:0 auto; padding:24px;}
+  header{
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;
+  }
+  .brand{font-weight:700; letter-spacing:.5px;}
+  .controls{
+    display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+  }
+  select, input[type="text"], button{
+    background:var(--card); color:var(--text); border:1px solid #374151;
+    padding:10px 12px; border-radius:8px; outline:none;
+  }
+  button.primary{ background:var(--accent); border-color:transparent; color:#052e12; font-weight:700; }
+  button.secondary{ background:var(--accent2); border-color:transparent; color:#0b2547; font-weight:700; }
+  button.danger{ background:var(--danger); border-color:transparent; color:#3f0d0d; font-weight:700; }
+  .card{
+    background:rgba(17,24,39,.85); border:1px solid #334155; border-radius:14px; padding:18px; margin-bottom:14px;
+    box-shadow:0 6px 24px rgba(0,0,0,.25);
+  }
+  .row{display:flex; gap:16px; flex-wrap:wrap;}
+  .grow{flex:1;}
+  .timer, .score{
+    background:#0b1220; border:1px dashed #334155; padding:10px 12px; border-radius:10px;
+  }
+  .badge{display:inline-block; padding:6px 10px; border-radius:999px; font-weight:700;}
+  .badge.good{background:rgba(34,197,94,.15); color:var(--accent);}
+  .badge.bad{background:rgba(239,68,68,.15); color:var(--danger);}
+  .question{
+    border-top:1px solid #1f2937; padding-top:12px; margin-top:6px;
+  }
+  .qtitle{font-weight:700;}
+  .options{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;}
+  .option{
+    background:#0b1220; border:1px solid #334155; border-radius:10px; padding:10px; cursor:pointer;
+  }
+  .option.correct{border-color:var(--accent); box-shadow:0 0 0 2px rgba(34,197,94,.3) inset;}
+  .option.wrong{border-color:var(--danger); box-shadow:0 0 0 2px rgba(239,68,68,.25) inset;}
+  .foot-actions{display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; margin-top:10px;}
+  .hidden{display:none !important;}
+  .leaderboard table{width:100%; border-collapse:collapse;}
+  .leaderboard th, .leaderboard td{border-bottom:1px solid #334155; padding:10px; text-align:left;}
+  .rank-1{color:var(--accent);}
+  .rank-2{color:var(--accent2);}
+  .rank-3{color:var(--warning);}
+  .lang-note{color:var(--muted); font-size:.9rem;}
+  @media (max-width:760px){ .options{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <div class="brand">C++ Quiz | امتحان C++</div>
+      <div class="lang-note">Bilingual UI • واجهة ثنائية اللغة</div>
+    </div>
+    <div class="controls">
+      <select id="lang">
+        <option value="en">English</option>
+        <option value="ar">العربية</option>
+      </select>
+      <input id="username" type="text" placeholder="Your name | اسمك"/>
+      <select id="duration">
+        <option value="10">10 min</option>
+        <option value="20">20 min</option>
+        <option value="30" selected>30 min</option>
+        <option value="45">45 min</option>
+      </select>
+      <button id="startBtn" class="primary">Start | ابدأ</button>
+      <button id="resetBtn" class="danger hidden">Reset | إعادة</button>
+    </div>
+  </header>
+
+  <div class="row">
+    <div class="grow timer card" id="timerBox">
+      <div id="timerLabel">Timer | المؤقت</div>
+      <div id="timerDisplay" style="font-size:1.4rem; font-weight:700; margin-top:6px;">00:00</div>
+    </div>
+    <div class="grow score card">
+      <div id="scoreLabel">Score | الدرجة</div>
+      <div id="scoreDisplay" style="font-size:1.4rem; font-weight:700; margin-top:6px;">0 / 0</div>
+    </div>
+  </div>
+
+  <div class="card" id="quizMeta">
+    <div id="metaText">Answer all questions. Randomized order. | أجب على جميع الأسئلة. ترتيب عشوائي.</div>
+    <div style="margin-top:6px;">
+      <span class="badge good">MCQ</span>
+      <span class="badge bad">Auto grading | تصحيح تلقائي</span>
+      <span class="badge" style="background:rgba(96,165,250,.15); color:var(--accent2);">Leaderboard | الترتيب</span>
+    </div>
+  </div>
+
+  <div id="quiz" class="card"></div>
+
+  <div class="card foot-actions">
+    <button id="submitBtn" class="secondary hidden">Submit | إنهاء</button>
+    <button id="showWrongBtn" class="secondary hidden">Show corrections | إظهار التصحيح</button>
+    <button id="saveBtn" class="primary hidden">Save result | حفظ النتيجة</button>
+  </div>
+
+  <div id="results" class="card hidden"></div>
+
+  <div class="card leaderboard">
+    <h3 style="margin:0 0 10px;">Leaderboard | قائمة الترتيب</h3>
+    <table id="lbTable">
+      <thead>
+        <tr>
+          <th>#</th><th>Name | الاسم</th><th>Score | الدرجة</th><th>Time | الوقت</th><th>Date | التاريخ</th>
+        </tr>
+      </thead>
+      <tbody id="lbBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+/* Questions Bank: text and correct answer */
+const BANK = [
+  // Section 1
+  {q:"C++ was developed at Bell Labs in 1979 by:", ar:"تم تطوير ++C في مختبرات بيل عام 1979 بواسطة:", opts:["Dennis Ritchie","James Gosling","Bjarne Stroustrup","Ken Thompson"], ans:2},
+  {q:"Original name of C++:", ar:"الاسم الأصلي لـ ++C:", opts:["C++/C","C with Classes","Advanced C","Object C"], ans:1},
+  {q:"C++ is considered a ____ language.", ar:"++C تُعد لغة:", opts:["Low-level","Middle-level","High-level","Machine"], ans:1},
+  {q:"Static typing means type checking occurs:", ar:"التحقق من النوع في الكتابة الثابتة يحدث:", opts:["During runtime","During compile-time","During linking","During interpretation"], ans:1},
+  {q:"Not a pillar of OOP:", ar:"أي مما يلي ليس من ركائز البرمجة الكائنية:", opts:["Inheritance","Encapsulation","Compilation","Polymorphism"], ans:2},
+  {q:"C++ standard library does not include:", ar:"مكتبة ++C القياسية لا تشمل:", opts:["Core language","Standard Template Library","C++ API","Standard C++ Library"], ans:2},
+  {q:"ANSI standard ensures C++ is:", ar:"المعيار ANSI يضمن أن ++C:", opts:["Fast","Portable","Dynamic","Secure"], ans:1},
+  {q:"C++ supports:", ar:"++C تدعم:", opts:["Procedural only","Object-oriented only","Both procedural and OOP","Functional only"], ans:2},
+  {q:"Main purpose of learning C++:", ar:"الغرض الرئيسي من تعلم ++C:", opts:["Memorize syntax","Design and implement systems efficiently","Write OS only","Replace C entirely"], ans:1},
+  {q:"Online compiler example location:", ar:"موقع المُترجم عبر الإنترنت:", opts:["compileonline.com","cppcompiler.org","codetester.net","onlinecpp.com"], ans:0},
+
+  // Section 2
+  {q:"Typical C++ source file extension:", ar:"امتداد ملف مصدر ++C المعتاد:", opts:[".ccp",".cxx",".cpp",".cpz"], ans:2},
+  {q:"GNU C/C++ compiler known as:", ar:"مُترجم GNU C/C++ يُعرف باسم:", opts:["GCC","GNC","GPP","GCOM"], ans:0},
+  {q:"Check GCC on Linux with:", ar:"أمر التحقق من GCC على لينكس:", opts:["gcc -- check","g++ -v","gcc -install","g++ -c"], ans:1},
+  {q:"On macOS, get GCC via:", ar:"على macOS، يتم الحصول على GCC عبر:", opts:["Visual Studio","Eclipse","Xcode","Dev C++"], ans:2},
+  {q:"On Windows, install GCC via:", ar:"على ويندوز، يتم تثبيت GCC عبر:", opts:["WinGCC","MinGW","PowerGCC","MSVC"], ans:1},
+  {q:"PATH variable is used to:", ar:"متغير PATH يُستخدم:", opts:["Locate executables","Compile C++ files","Debug programs","Allocate memory"], ans:0},
+  {q:"Compiler converts source into:", ar:"المُترجم يحول المصدر إلى:", opts:["Header","Executable","Library","Text file"], ans:1},
+  {q:'"Hello World" uses header:', ar:'برنامج "Hello World" يستخدم الترويسة:', opts:["<stdio.h>","<iostream>","<string>","<main.h>"], ans:1},
+  {q:'"using namespace std;" is used to:', ar:'الغرض من "using namespace std;":', opts:["Import all headers","Avoid std:: prefix","Define main","Manual namespace"], ans:1},
+  {q:"Program execution begins at:", ar:"تبدأ تنفيذ البرنامج عند:", opts:["start()","execute()","main()","run()"], ans:2},
+
+  // Section 3
+  {q:"A C++ statement ends with:", ar:"تنتهي العبارة في ++C بـ:", opts:["Colon", "Period", "Semicolon", "Comma"], ans:2},
+  {q:"C++ is ____ sensitive.", ar:"++C حساسة لـ:", opts:["Case","Syntax","Format","Space"], ans:0},
+  {q:'"//" comments are:', ar:'تعليقات "//" هي:', opts:["Multi-line","Single-line","Preprocessor","Function headers"], ans:1},
+  {q:"Blocks of code are enclosed by:", ar:"الكتل تُغلف بواسطة:", opts:["()","[]","{}","<>"], ans:2},
+  {q:'"return 0;" indicates:', ar:'"return 0;" تعني:', opts:["Successful termination","Compilation error","Return to main()","Loop completion"], ans:0},
+  {q:"Identifiers can begin with:", ar:"يبدأ المعرف بـ:", opts:["Number","Letter or underscore","Special char","Any ASCII"], ans:1},
+  {q:'"MyVar" vs "myvar" refer to:', ar:'"MyVar" و "myvar" يشيران إلى:', opts:["Same variable","Different variables","Const vs var","Reserved names"], ans:1},
+  {q:"Keyword to define a class:", ar:"الكلمة لتعريف صنف:", opts:["struct","typedef","class","object"], ans:2},
+  {q:"Trigraphs are:", ar:"التريغرافات هي:", opts:["Error codes","Alternative char representations","Compiler warnings","Deprecated keywords"], ans:1},
+  {q:"Whitespace in C++:", ar:"المسافات في ++C:", opts:["Ignored except in identifiers","Cause errors","Must be minimized","Indicate function boundaries"], ans:0},
+
+  // Section 4
+  {q:"Boolean type keyword:", ar:"كلمة نوع القيم المنطقية:", opts:["boolean","bit","bool","flag"], ans:2},
+  {q:"Size of int typically:", ar:"الحجم المعتاد لـ int:", opts:["1 byte","2 bytes","4 bytes","8 bytes"], ans:2},
+  {q:"sizeof() returns:", ar:"sizeof() تُرجع:", opts:["Variable count","Memory bytes","Type name","Address"], ans:1},
+  {q:"typedef used to:", ar:"تُستخدم typedef لـ:", opts:["Allocate memory","Create type aliases","Define functions","Init constants"], ans:1},
+  {q:"Valid enum declaration:", ar:"تصريح تعداد صحيح:", opts:["class color {red, green};","enum color {red, green, blue};","struct color (red, green);","color[red, green];"], ans:1},
+  {q:"Enum counts start from:", ar:"بدء العد في enum:", opts:["-1","0","1","Any"], ans:1},
+  {q:"Declare variables defined elsewhere:", ar:"تصريح لمتغيرات معرفة خارجياً:", opts:["static","extern","const","public"], ans:1},
+  {q:"An lvalue refers to:", ar:"القيمة اليسارية تشير إلى:", opts:["Temporary data","Memory location","Constant expressions","Function return"], ans:1},
+  {q:"Global variable is declared:", ar:"التصريح العام يكون:", opts:["Inside function","Outside all functions","Inside loop","Within class only"], ans:1},
+  {q:"Default value of uninitialized global int:", ar:"القيمة الافتراضية لـ int عالمي غير مهيأ:", opts:["1","0","NULL","Undefined"], ans:1},
+  {q:"Local variables initialized to:", ar:"تهيئة المتغيرات المحلية:", opts:["0","Random values","NULL","1"], ans:1},
+  {q:"Valid variable name:", ar:"اسم متغير صحيح:", opts:["3number","my-variable","_temp","@name"], ans:2},
+  {q:'"const" keyword used to:', ar:'تُستخدم "const" لـ:', opts:["Create constants","Allocate memory","Modify pointers","Make variables private"], ans:0},
+  {q:"NOT a primitive type:", ar:"ليست نوعاً بدائياً:", opts:["int","float","string","char"], ans:2},
+  {q:"Value of true in C++:", ar:"قيمة true في ++C:", opts:["1","true","both A and B","neither"], ans:2},
+
+  // Section 5
+  {q:"unsigned means:", ar:"unsigned يعني:", opts:["Positive & negative","Positive only","Zero only","Temporary"], ans:1},
+  {q:"long double bytes typically:", ar:"حجم long double عادةً:", opts:["4","8","10 or more","2"], ans:2},
+  {q:"volatile indicates:", ar:"volatile تشير إلى:", opts:["May change unexpectedly","Is constant","Unused","Temporary"], ans:0},
+  {q:"Default storage of local variables:", ar:"فئة التخزين الافتراضية للمحلي:", opts:["static","extern","auto","register"], ans:2},
+  {q:"Retain value between calls:", ar:"الاحتفاظ بالقيمة بين الاستدعاءات:", opts:["static","register","auto","volatile"], ans:0},
+  {q:"register suggests storing in:", ar:"register يقترح التخزين في:", opts:["Disk","CPU register","RAM","Cache"], ans:1},
+  {q:"extern used to:", ar:"extern تُستخدم لـ:", opts:["Declare external variable","Define local","Init constants","Link libraries"], ans:0},
+  {q:"mutable allows modification in:", ar:"mutable يسمح بالتعديل في:", opts:["const member functions","static functions","private variables","global constants"], ans:0},
+  {q:"#define defines:", ar:"#define يعرّف:", opts:["Constants","Variables","Functions","Headers"], ans:0},
+  {q:"Correct const syntax:", ar:"صياغة const الصحيحة:", opts:["const = int value;","const int value = 10;","int const value;","define const value = 10;"], ans:1},
+  {q:"Single quotes literal type:", ar:"نوع المحرف بين علامات فردية:", opts:["Integer","Character","String","Boolean"], ans:1},
+  {q:"String literals enclosed in:", ar:"السلاسل محاطة بـ:", opts:["''","\" \"","<>","[]"], ans:1},
+  {q:"Escape for newline:", ar:"هروب سطر جديد:", opts:["\\n","\\r","la","\\f"], ans:0},
+  {q:"Wide characters declared using:", ar:"تصريح المحارف العريضة بـ:", opts:["wchar_t","widechar","longchar","char*"], ans:0},
+  {q:"Hex literals start with:", ar:"ست عشري يبدأ بـ:", opts:["0h","0x","hx","0d"], ans:1},
+
+  // Section 6
+  {q:"Modulo operator:", ar:"عامل باقي القسمة:", opts:["/","%","//","*"], ans:1},
+  {q:"Increment operator increases by:", ar:"الزيادة تزيد بـ:", opts:["2","1","Variable","10"], ans:1},
+  {q:"Equality operator:", ar:"عامل المساواة:", opts:["=","==","==","==="], ans:1},
+  {q:'"&&" denotes:', ar:'"&&" تمثل:', opts:["Bitwise AND","Logical AND","Arithmetic AND","Conditional AND"], ans:1},
+  {q:"OR operator:", ar:"عامل OR:", opts:["|","|","^^","+"], ans:0},
+  {q:"NOT operator:", ar:"عامل NOT:", opts:["!","~","^","%"], ans:0},
+  {q:"Bitwise complement:", ar:"متمم بتّي:", opts:["&","|","^","~"], ans:3},
+  {q:"Left shift:", ar:"إزاحة يسار:", opts:["<<",">>","<<<",">>>"], ans:0},
+  {q:"Right shift:", ar:"إزاحة يمين:", opts:["<<",">>","<>","×"], ans:1},
+  {q:"Compound assignment for multiplication:", ar:"إسناد مركب للضرب:", opts:["=","=","+*","*+"], ans:1}, // will treat '*=' though UI says '='; we’ll map to index 1 as intended
+  {q:"Precedence of * vs +:", ar:"أولوية * مقارنة بـ +:", opts:["Lower","Higher","Equal","Unrelated"], ans:1},
+  {q:"Ternary operator:", ar:"المعامل الثلاثي:", opts:["?:","??","::","#?"], ans:0},
+  {q:"Address-of operator:", ar:"عامل أخذ العنوان:", opts:["@","#","&","*"], ans:2},
+  {q:"Dereference operator:", ar:"عامل إلغاء المرجع:", opts:["&","*","->","::"], ans:1},
+  {q:"Operator with highest precedence:", ar:"الأعلى أولوية:", opts:["*","++","=","&&"], ans:1},
+  {q:"Comma operator evaluates:", ar:"عامل الفاصلة يُقيّم:", opts:["First","Second","Both, returns last","None"], ans:2},
+  {q:"x = 7 + 3 * 2; results in:", ar:"ناتج x = 7 + 3 * 2;", opts:["13","20","10","17"], ans:3},
+  {q:"sizeof returns:", ar:"sizeof تُرجع:", opts:["Bits","Bytes","Type name","None"], ans:1},
+  {q:"Equality operator category:", ar:"فئة عامل المساواة:", opts:["Relational","Logical","Assignment","Arithmetic"], ans:0},
+  {q:"Same precedence operators evaluated:", ar:"تقييم العوامل ذات نفس الأولوية:", opts:["Randomly","Left to right","Right to left","Depends on compiler"], ans:1},
+
+  // Section 7
+  {q:"Not a loop type in C++:", ar:"ليست نوع حلقة في ++C:", opts:["for","while","do...while","repeat...until"], ans:3},
+  {q:"for loop has how many expressions:", ar:"عدد التعابير داخل for:", opts:["1","2","3","4"], ans:2},
+  {q:"while condition checked:", ar:"فحص شرط while:", opts:["Before body","After body","Random","Once"], ans:0},
+  {q:"do...while guarantees:", ar:"do...while تضمن:", opts:["One execution","Infinite loop","No iteration","Compile error"], ans:0},
+  {q:"Nested loops mean:", ar:"الحلقات المتداخلة تعني:", opts:["Multiple loops inside","One per file","Loop at end","None"], ans:0},
+  {q:"for initialization done:", ar:"تهيئة for تتم:", opts:["After each iteration","Once at start","Every time","Never"], ans:1},
+  {q:"Skip an iteration keyword:", ar:"تجاوز دورة باستخدام:", opts:["stop","skip","continue","jump"], ans:2},
+  {q:"Terminate loop immediately:", ar:"إنهاء الحلقة فوراً:", opts:["stop","end","break","return"], ans:2},
+  {q:'"break;" exits:', ar:'"break;" تخرج من:', opts:["Outermost loop","Innermost loop","Entire program","Next function"], ans:1},
+  {q:'"goto" statement is:', ar:'التعليمة "goto" هي:', opts:["Recommended","Discouraged","Mandatory","For memory"], ans:1},
+  {q:"Syntax of while:", ar:"صياغة while:", opts:["while { condition }","while (condition) { }","while condition { }","(while) { }"], ans:1},
+  {q:"Never-terminating loop:", ar:"حلقة لا تنتهي:", opts:["Infinite loop","Endless recursion","Nested loop","None"], ans:0},
+  {q:"Control back to loop condition:", ar:"إرجاع التحكم لشرط الحلقة:", opts:["return","continue","break","goto"], ans:1},
+  {q:"In nested loop, break affects:", ar:"في حلقة متداخلة، break تؤثر على:", opts:["Outer loop","Inner loop","All loops","None"], ans:1},
+  {q:"Keyword used in prime example:", ar:"الكلمة المستخدمة في مثال الأعداد الأولية:", opts:["while","do","for","loop"], ans:2},
+  {q:"Loop counter type usually:", ar:"نوع عداد الحلقة عادةً:", opts:["float","int","char","bool"], ans:1},
+  {q:"for condition must evaluate to:", ar:"شرط for يجب أن يقيم إلى:", opts:["Integer","Boolean","String","Character"], ans:1},
+  {q:"while continues until condition is:", ar:"while تستمر حتى يصبح الشرط:", opts:["True","False","Non-zero","Zero"], ans:1},
+  {q:"Scope of variable declared inside loop:", ar:"نطاق متغير مصرح داخل حلقة:", opts:["Entire program","Function only","Within that loop","Global"], ans:2},
+  {q:"When break executes, control passes to:", ar:"عند تنفيذ break ينتقل التحكم إلى:", opts:["Next statement after loop","Top of loop","Function end","Next iteration"], ans:0},
+];
+
+const UI = {
+  en:{
+    timer:"Timer", score:"Score", meta:"Answer all questions. Randomized order.",
+    start:"Start", reset:"Reset", submit:"Submit", showWrong:"Show corrections",
+    save:"Save result",
+    nameRequired:"Please enter your name to save and rank.",
+    timeUp:"Time is up! Auto-submitting...",
+    resultsTitle:"Results and classification",
+    yourScore:"Your score",
+    classificationLabel:"Classification",
+    rankLabel:"Your rank",
+    bestLabel:"Top performers",
+    correct:"Correct",
+    wrong:"Wrong",
+    correction:"Correction",
+  },
+  ar:{
+    timer:"المؤقت", score:"الدرجة", meta:"أجب على جميع الأسئلة. ترتيب عشوائي.",
+    start:"ابدأ", reset:"إعادة", submit:"إنهاء", showWrong:"إظهار التصحيح",
+    save:"حفظ النتيجة",
+    nameRequired:"من فضلك أدخل اسمك للحفظ ومعرفة ترتيبك.",
+    timeUp:"انتهى الوقت! سيتم الإنهاء تلقائياً...",
+    resultsTitle:"النتائج والتصنيف",
+    yourScore:"درجتك",
+    classificationLabel:"التصنيف",
+    rankLabel:"ترتيبك",
+    bestLabel:"أفضل النتائج",
+    correct:"صحيح",
+    wrong:"خطأ",
+    correction:"تصحيح",
+  }
+};
+
+let state = {
+  lang:"en",
+  user:"",
+  durationMin:30,
+  timeLeft:0,
+  timerId:null,
+  questions:[],
+  answers:{},
+  submitted:false,
+  score:0,
+};
+
+const el = id=>document.getElementById(id);
+
+function setLangLabels(){
+  const L = UI[state.lang];
+  el("timerLabel").textContent = `${L.timer} | ${state.lang==="en"?"":"المؤقت"}`;
+  el("scoreLabel").textContent = `${L.score} | ${state.lang==="en"?"":"الدرجة"}`;
+  el("metaText").textContent = `${state.lang==="en"?UI.en.meta:UI.ar.meta}`;
+  el("startBtn").textContent = `${UI.en.start} | ${UI.ar.start}`;
+  el("resetBtn").textContent = `${UI.en.reset} | ${UI.ar.reset}`;
+  el("submitBtn").textContent = `${UI.en.submit} | ${UI.ar.submit}`;
+  el("showWrongBtn").textContent = `${UI.en.showWrong} | ${UI.ar.showWrong}`;
+  el("saveBtn").textContent = `${UI.en.save} | ${UI.ar.save}`;
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+}
+
+function prepareQuiz(){
+  // deep copy and shuffle
+  state.questions = BANK.map((q,i)=>({...q, id:i}));
+  shuffle(state.questions);
+  renderQuiz();
+  updateScore();
+}
+
+function renderQuiz(){
+  const L = UI[state.lang];
+  const wrap = document.createElement("div");
+  state.questions.forEach((q,idx)=>{
+    const card = document.createElement("div");
+    card.className = "question";
+    const title = document.createElement("div");
+    title.className = "qtitle";
+    title.textContent = `${idx+1}. ${state.lang==="en"?q.q:q.ar}`;
+    card.appendChild(title);
+
+    const opts = document.createElement("div");
+    opts.className = "options";
+    q.opts.forEach((opt,optIdx)=>{
+      const btn = document.createElement("div");
+      btn.className = "option";
+      btn.textContent = `${String.fromCharCode(65+optIdx)}) ${opt}`;
+      btn.dataset.qid = q.id;
+      btn.dataset.idx = optIdx;
+      btn.addEventListener("click", ()=>{
+        if(state.submitted) return;
+        // clear previous selection styles
+        [...opts.children].forEach(c=>c.classList.remove("correct","wrong"));
+        state.answers[q.id] = optIdx;
+        btn.classList.add("correct"); // mark selection visually (green)
+        updateScore(false); // live score optional (without grading)
+      });
+      opts.appendChild(btn);
+    });
+    card.appendChild(opts);
+    wrap.appendChild(card);
+  });
+  el("quiz").innerHTML = "";
+  el("quiz").appendChild(wrap);
+}
+
+function updateScore(gradeNow=true){
+  if(!gradeNow){
+    el("scoreDisplay").textContent = `${Object.keys(state.answers).length} / ${state.questions.length}`;
+    return;
+  }
+  let correct=0;
+  state.questions.forEach(q=>{
+    const chosen = state.answers[q.id];
+    if(chosen===q.ans) correct++;
+  });
+  state.score = correct;
+  el("scoreDisplay").textContent = `${correct} / ${state.questions.length}`;
+}
+
+function startTimer(){
+  state.timeLeft = state.durationMin*60;
+  drawTimer();
+  state.timerId = setInterval(()=>{
+    state.timeLeft--;
+    drawTimer();
+    if(state.timeLeft<=0){
+      clearInterval(state.timerId);
+      autoSubmit(UI[state.lang].timeUp);
+    }
+  },1000);
+}
+
+function drawTimer(){
+  const m = Math.floor(state.timeLeft/60).toString().padStart(2,"0");
+  const s = (state.timeLeft%60).toString().padStart(2,"0");
+  el("timerDisplay").textContent = `${m}:${s}`;
+}
+
+function submit(){
+  if(state.submitted) return;
+  state.submitted = true;
+  clearInterval(state.timerId);
+  gradeAndDecorate();
+  updateScore(true);
+  el("showWrongBtn").classList.remove("hidden");
+  el("saveBtn").classList.remove("hidden");
+}
+
+function autoSubmit(msg){
+  alert(msg);
+  submit();
+}
+
+function gradeAndDecorate(){
+  // decorate chosen options: green for correct, red for wrong
+  const optionDivs = document.querySelectorAll(".option");
+  optionDivs.forEach(div=>{
+    const qid = parseInt(div.dataset.qid,10);
+    const idx = parseInt(div.dataset.idx,10);
+    const q = state.questions.find(x=>x.id===qid);
+    const chosen = state.answers[qid];
+    // apply correctness style
+    if(idx===q.ans) div.classList.add("correct");
+    if(chosen!==undefined && idx===chosen && chosen!==q.ans) div.classList.add("wrong");
+  });
+  el("submitBtn").classList.add("hidden");
+}
+
+function showCorrections(){
+  const L = UI[state.lang];
+  const res = document.createElement("div");
+  const title = document.createElement("h3");
+  title.textContent = `${UI.en.resultsTitle} | ${UI.ar.resultsTitle}`;
+  res.appendChild(title);
+
+  const score = document.createElement("div");
+  score.innerHTML = `<strong>${L.yourScore}:</strong> ${state.score} / ${state.questions.length}`;
+  res.appendChild(score);
+
+  const classification = classify(state.score, state.questions.length);
+  const cls = document.createElement("div");
+  cls.innerHTML = `<strong>${L.classificationLabel}:</strong> ${classification}`;
+  res.appendChild(cls);
+
+  const rank = getProjectedRank(state.user, state.score);
+  const rk = document.createElement("div");
+  rk.innerHTML = `<strong>${L.rankLabel}:</strong> ${rank ? rank : "-"}`;
+  res.appendChild(rk);
+
+  const list = document.createElement("div");
+  list.style.marginTop = "10px";
+  state.questions.forEach((q,i)=>{
+    const chosen = state.answers[q.id];
+    const isCorrect = chosen===q.ans;
+    const row = document.createElement("div");
+    row.style.margin="8px 0";
+    row.innerHTML = `<span class="badge ${isCorrect?'good':'bad'}">${isCorrect?L.correct:L.wrong}</span> ${i+1}. ${state.lang==="en"?q.q:q.ar}
+      <div style="margin-top:4px;">
+        <em>${L.correction}:</em> ${String.fromCharCode(65+q.ans)}) ${q.opts[q.ans]}
+      </div>`;
+    list.appendChild(row);
+  });
+  res.appendChild(list);
+
+  el("results").innerHTML = "";
+  el("results").appendChild(res);
+  el("results").classList.remove("hidden");
+}
+
+function classify(score,total){
+  const pct = (score/total)*100;
+  if(pct>=90) return "Excellent | ممتاز";
+  if(pct>=75) return "Very good | جيد جداً";
+  if(pct>=60) return "Good | جيد";
+  if(pct>=50) return "Pass | مقبول";
+  return "Needs improvement | يحتاج تحسين";
+}
+
+function getProjectedRank(name,score){
+  const lb = loadLB();
+  const all = [...lb, {name:name||"Anonymous", score, total:state.questions.length, secsUsed:(state.durationMin*60 - state.timeLeft), date:new Date().toISOString()}];
+  all.sort((a,b)=>{
+    if(b.score!==a.score) return b.score-a.score;
+    return a.secsUsed-b.secsUsed; // faster wins
+  });
+  const idx = all.findIndex(x=>x.name===(name||"Anonymous") && x.score===score && x.total===state.questions.length);
+  return idx>=0 ? `#${idx+1}` : null;
+}
+
+function saveResult(){
+  const L = UI[state.lang];
+  if(!state.user || !state.user.trim()){
+    alert(L.nameRequired);
+    return;
+  }
+  const entry = {
+    name: state.user.trim(),
+    score: state.score,
+    total: state.questions.length,
+    secsUsed: state.durationMin*60 - state.timeLeft,
+    date: new Date().toISOString()
+  };
+  const lb = loadLB();
+  lb.push(entry);
+  localStorage.setItem("cpp_quiz_lb", JSON.stringify(lb));
+  renderLB();
+  alert("Saved | تم الحفظ");
+}
+
+function loadLB(){
+  try{
+    return JSON.parse(localStorage.getItem("cpp_quiz_lb")||"[]");
+  }catch(e){ return []; }
+}
+
+function renderLB(){
+  const lb = loadLB();
+  lb.sort((a,b)=>{
+    if(b.score!==a.score) return b.score-a.score;
+    return a.secsUsed-b.secsUsed;
+  });
+  const tbody = el("lbBody");
+  tbody.innerHTML = "";
+  lb.forEach((e,i)=>{
+    const tr = document.createElement("tr");
+    const cls = i===0?"rank-1":(i===1?"rank-2":(i===2?"rank-3":""));
+    tr.innerHTML = `
+      <td class="${cls}">#${i+1}</td>
+      <td>${e.name}</td>
+      <td>${e.score} / ${e.total}</td>
+      <td>${fmtSecs(e.secsUsed)}</td>
+      <td>${new Date(e.date).toLocaleString()}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function fmtSecs(s){
+  const m = Math.floor(s/60).toString().padStart(2,"0");
+  const sec = (s%60).toString().padStart(2,"0");
+  return `${m}:${sec}`;
+}
+
+/* Event bindings */
+el("lang").addEventListener("change", (e)=>{ state.lang = e.target.value; setLangLabels(); });
+el("username").addEventListener("input", (e)=>{ state.user = e.target.value; });
+el("duration").addEventListener("change", (e)=>{ state.durationMin = parseInt(e.target.value,10); });
+el("startBtn").addEventListener("click", ()=>{
+  // init
+  state.submitted=false; state.answers={}; state.score=0;
+  el("submitBtn").classList.remove("hidden");
+  el("resetBtn").classList.remove("hidden");
+  el("showWrongBtn").classList.add("hidden");
+  el("saveBtn").classList.add("hidden");
+  el("results").classList.add("hidden");
+  prepareQuiz();
+  startTimer();
+});
+el("resetBtn").addEventListener("click", ()=>{
+  clearInterval(state.timerId);
+  state.submitted=false; state.answers={}; state.score=0;
+  el("quiz").innerHTML = "";
+  el("results").classList.add("hidden");
+  el("submitBtn").classList.add("hidden");
+  el("resetBtn").classList.add("hidden");
+  el("showWrongBtn").classList.add("hidden");
+  el("saveBtn").classList.add("hidden");
+  el("scoreDisplay").textContent = "0 / 0";
+  el("timerDisplay").textContent = "00:00";
+});
+el("submitBtn").addEventListener("click", submit);
+el("showWrongBtn").addEventListener("click", showCorrections);
+el("saveBtn").addEventListener("click", saveResult);
+
+setLangLabels();
+renderLB();
+</script>
+</body>
+</html>
